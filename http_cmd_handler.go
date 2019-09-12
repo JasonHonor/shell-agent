@@ -4,14 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	log "github.com/Sirupsen/logrus"
-	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/nu7hatch/gouuid"
 )
 
 type RunCmdReq struct {
@@ -58,7 +60,7 @@ func RunCmdHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err := json.Unmarshal(body, &req); err != nil {
-		log.Errorf("failed to unmarshall data: %s", err)
+		log.Errorf("failed to unmarshall data: %s body:%s", err, body)
 		ServeJSON(w, NewResponse().SetError(ECUnknown, "failed to unmarshall data"))
 		return
 	}
@@ -115,13 +117,23 @@ func cmdWorker(ctx context.Context, job *Job) {
 		job.Stderr = stderr.String()
 	}()
 
-	cmd := exec.Command("sh", "-c", job.Cmd)
+	//arch:amd64 os:windows
+	goarch := runtime.GOARCH
+	goos := runtime.GOOS
+
+	var cmd *exec.Cmd
+	if goos == "windows" {
+		cmd = exec.Command("cmd", "/c", job.Cmd)
+	} else {
+		cmd = exec.Command("sh", "-c", job.Cmd)
+	}
+
 	cmd.Dir = job.Dir
 	cmd.Env = append(cmd.Env, job.Env...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	log.Infof("running cmd: %s, job id: %s", job.Cmd, job.Id)
+	log.Infof("running cmd: %s, job id: %s arch:%s os:%s", job.Cmd, job.Id, goarch, goos)
 	err = cmd.Start()
 	if err != nil {
 		log.Errorf("cmd.Start failed: %s", err)
