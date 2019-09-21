@@ -1,8 +1,11 @@
 package main
 
 import (
-	log "github.com/Sirupsen/logrus"
+	"os"
+	"path/filepath"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 var (
@@ -40,6 +43,17 @@ Options:
 
 func (o *Application) OnOptParsed(m map[string]interface{}) {
 	o.cnfPath = m["--cnf"].(string)
+
+	//add default config file
+	if o.cnfPath == "" {
+		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+
+		if err != nil {
+			o.cnfPath = ""
+		} else {
+			o.cnfPath = dir + "\\config.ini"
+		}
+	}
 	o.Cnf.Addr = m["--addr"].(string)
 }
 

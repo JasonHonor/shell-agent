@@ -14,6 +14,9 @@ type Config struct {
 
 	cnfPath  string
 	innerCnf config.Configer
+
+	//listen port
+	//Port int
 }
 
 func NewConfig() *Config {
@@ -49,6 +52,8 @@ func (o *Config) Reload() error {
 	o.LogLevel = o.innerCnf.DefaultString("log::level", "info")
 
 	o.ExpireDays = o.innerCnf.DefaultInt("expire_days", 7)
+	//listen port
+	o.Addr = o.innerCnf.DefaultString("server::address", ":10080")
 
 	return nil
 }
